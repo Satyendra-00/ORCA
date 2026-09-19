@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ORCA — Marine Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --surface-0: #060b12;
+    --surface-1: #0a121b;
+    --surface-2: #0f1a26;
+    --surface-3: #142433;
+    --line: rgba(198,222,232,0.08);
+    --line-strong: rgba(198,222,232,0.16);
+    --ink: #eef6f8;
+    --ink-dim: #8ba0ad;
+    --ink-faint: #55697590;
+    --accent: #74e5d6;
+    --accent-2: #5bb8e0;
+    --accent-soft: rgba(116,229,214,0.12);
+    --accent-line: rgba(116,229,214,0.28);
+    --safe: #86e2ab;
+    --safe-soft: rgba(134,226,171,0.12);
+    --warn: #eec27a;
+    --warn-soft: rgba(238,194,122,0.14);
+    --danger: #f3897d;
+    --danger-soft: rgba(243,137,125,0.14);
+    --danger-line: rgba(243,137,125,0.35);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    font-family:'Manrope', sans-serif;
+    background: #04070b;
+    color: var(--ink);
+    display:flex; align-items:flex-start; justify-content:center;
+    min-height:100vh; padding: 30px 14px;
+  }
+  button{ font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+  .num{ font-variant-numeric: tabular-nums; letter-spacing:-0.02em; }
+
+  /* ============ Device frame ============ */
+  .device{
+    width:390px; max-width:100%; height:844px; max-height:92vh;
+    background: linear-gradient(175deg, #081019 0%, var(--surface-0) 38%, #050a10 100%);
+    border-radius:44px; border:1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 50px 100px -35px rgba(0,0,0,0.85), 0 0 0 8px #000, 0 0 0 9px rgba(255,255,255,0.03);
+    overflow:hidden; position:relative; display:flex; flex-direction:column;
+  }
+  .notch{ position:absolute; top:0; left:50%; transform:translateX(-50%); width:118px; height:24px; background:#000; border-radius:0 0 16px 16px; z-index:80; }
+
+  /* ============ Header ============ */
+  .app-header{
+    padding:22px 22px 6px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  }
+  .brand-row{ display:flex; align-items:center; gap:9px; }
+  .orca-mark{ width:22px; height:22px; flex-shrink:0; }
+  .brand-text{ display:flex; flex-direction:column; }
+  .brand-name{ font-size:13.5px; font-weight:800; letter-spacing:0.2px; line-height:1; }
+  .brand-sub{ font-size:10px; color:var(--ink-dim); font-weight:600; margin-top:2px; }
+  .status-row{ display:flex; align-items:center; gap:12px; }
+  .status-item{ display:flex; align-items:center; gap:5px; font-size:10px; font-weight:600; color:var(--ink-dim); }
+  .dot{ width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+  .dot.on{ background:var(--safe); box-shadow:0 0 5px var(--safe); }
+  .dot.off{ background:var(--danger); box-shadow:0 0 5px var(--danger); animation:blink 1.3s infinite; }
+  .dot.gps{ background:var(--accent); box-shadow:0 0 5px var(--accent); animation:blink 2.2s infinite; }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .offline-banner{
+    margin:10px 22px 0; padding:10px 14px; border-radius:12px; background:var(--warn-soft);
+    border:1px solid rgba(238,194,122,0.3); display:none; align-items:center; gap:10px;
+  }
+  .offline-banner.show{ display:flex; }
+  .offline-banner-text{ flex:1; }
+  .offline-banner-title{ font-size:11.5px; font-weight:700; color:var(--warn); }
+  .offline-banner-sub{ font-size:10.5px; color:var(--ink-dim); margin-top:1px; }
+
+  /* ============ Screens ============ */
+  .screens{ flex:1; position:relative; overflow:hidden; }
+  .screen{ position:absolute; inset:0; overflow-y:auto; padding:18px 22px 150px; display:none; scrollbar-width:none; }
+  .screen::-webkit-scrollbar{ display:none; }
+  .screen.active{ display:block; }
+
+  /* ============ Hero (Safety) ============ */
+  .hero{ padding-top:6px; margin-bottom:30px; }
+  .hero-greeting{ font-size:12.5px; color:var(--ink-dim); font-weight:600; margin-bottom:6px; }
+  .hero-status{ font-size:30px; font-weight:800; line-height:1.15; letter-spacing:-0.5px; margin-bottom:8px; }
+  .hero-status.safe{ background:linear-gradient(100deg, #ffffff 20%, var(--accent) 90%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero-sub{ font-size:13px; color:var(--ink-dim); line-height:1.5; margin-bottom:22px; max-width:280px; }
+  .hero-stats{ display:flex; gap:0; border-top:1px solid var(--line); padding-top:14px; }
+  .hero-stat{ flex:1; padding-right:14px; }
+  .hero-stat + .hero-stat{ border-left:1px solid var(--line); padding-left:14px; }
+  .hero-stat-label{ font-size:10px; color:var(--ink-faint); font-weight:700; letter-spacing:0.4px; margin-bottom:5px; }
+  .hero-stat-val{ font-size:19px; font-weight:800; }
+
+  /* ============ Section label ============ */
+  .section-label{ font-size:11px; color:var(--ink-dim); font-weight:700; letter-spacing:0.4px; margin-bottom:12px; }
+
+  /* ============ PFZ hero visualization ============ */
+  .pfz-block{
+    position:relative; border-radius:28px; padding:26px 22px 22px;
+    background: radial-gradient(120% 100% at 15% 0%, rgba(116,229,214,0.10) 0%, transparent 55%), var(--surface-1);
+    border:1px solid var(--line); margin-bottom:16px; cursor:pointer;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .pfz-block:active{ transform:scale(0.98); }
+  .pfz-block-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .pfz-tag{ font-size:10.5px; font-weight:700; color:var(--accent); background:var(--accent-soft); padding:5px 11px; border-radius:20px; letter-spacing:0.3px; }
+  .pfz-eta{ font-size:11px; color:var(--ink-dim); font-weight:600; }
+  .pfz-center{ display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:18px; }
+  .pfz-ring-wrap{ position:relative; width:150px; height:150px; margin-bottom:12px; }
+  .pfz-ring-wrap svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .ring-track{ fill:none; stroke:rgba(255,255,255,0.05); stroke-width:7; }
+  .ring-fill{ fill:none; stroke:url(#pfzGrad); stroke-width:7; stroke-linecap:round; stroke-dasharray:396; stroke-dashoffset:396; transition:stroke-dashoffset 1.6s cubic-bezier(.16,.9,.28,1); }
+  .pfz-ring-label{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .pfz-score-num{ font-size:44px; font-weight:800; line-height:1; }
+  .pfz-score-den{ font-size:10.5px; color:var(--ink-dim); font-weight:700; letter-spacing:0.6px; margin-top:4px; }
+  .pfz-zone-name{ font-size:16px; font-weight:800; margin-bottom:3px; }
+  .pfz-zone-meta{ font-size:12px; color:var(--ink-dim); font-weight:500; }
+  .pfz-tap-hint{ display:flex; align-items:center; justify-content:center; gap:5px; font-size:11px; color:var(--ink-faint); font-weight:600; padding-top:16px; border-top:1px solid var(--line); }
+
+  /* ============ Weather strip ============ */
+  .weather-strip{
+    display:flex; align-items:center; gap:0; background:var(--surface-1); border:1px solid var(--line);
+    border-radius:20px; padding:16px 18px; margin-bottom:14px; cursor:pointer;
+  }
+  .weather-item{ flex:1; display:flex; flex-direction:column; gap:4px; }
+  .weather-item + .weather-item{ border-left:1px solid var(--line); padding-left:14px; margin-left:0; }
+  .weather-val{ font-size:16.5px; font-weight:800; }
+  .weather-label{ font-size:9.5px; color:var(--ink-faint); font-weight:700; letter-spacing:0.4px; }
+  .weather-tag{ margin-left:auto; font-size:10px; font-weight:700; color:var(--safe); background:var(--safe-soft); padding:5px 10px; border-radius:20px; white-space:nowrap; }
+
+  /* ============ IMBL row ============ */
+  .imbl-row{
+    display:flex; align-items:center; gap:12px; background:var(--surface-1); border:1px solid var(--line);
+    border-radius:20px; padding:15px 18px; margin-bottom:8px; transition: all .3s ease;
+  }
+  .imbl-icon{ width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:var(--safe-soft); transition:background .3s ease; }
+  .imbl-text{ flex:1; }
+  .imbl-label{ font-size:10px; color:var(--ink-faint); font-weight:700; letter-spacing:0.4px; }
+  .imbl-val{ font-size:16px; font-weight:800; margin-top:2px; }
+  .imbl-note{ font-size:10.5px; color:var(--ink-dim); font-weight:600; margin-top:2px; }
+
+  /* ============ Advisories screen ============ */
+  .lang-picker{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:22px; scrollbar-width:none; }
+  .lang-picker::-webkit-scrollbar{ display:none; }
+  .lang-chip{ flex-shrink:0; padding:9px 16px; border-radius:20px; border:1px solid var(--line); font-size:13px; font-weight:700; color:var(--ink-dim); background:var(--surface-1); transition:all .18s ease; }
+  .lang-chip.active{ background:var(--accent-soft); border-color:var(--accent-line); color:var(--accent); }
+
+  .advisory-card{ background:var(--surface-1); border:1px solid var(--line); border-radius:22px; padding:22px; margin-bottom:16px; }
+  .advisory-headline{ font-size:17px; font-weight:800; margin-bottom:10px; line-height:1.4; }
+  .advisory-body{ font-size:13.5px; color:var(--ink-dim); line-height:1.7; margin-bottom:16px; }
+  .listen-btn{ display:inline-flex; align-items:center; gap:7px; padding:10px 16px; border-radius:14px; background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent); font-weight:700; font-size:12.5px; }
+
+  .alert-item{ display:flex; align-items:flex-start; gap:12px; padding:14px 0; border-top:1px solid var(--line); }
+  .alert-item:first-child{ border-top:none; }
+  .alert-dot{ width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+  .alert-title{ font-size:13px; font-weight:700; }
+  .alert-time{ font-size:11px; color:var(--ink-faint); font-weight:600; margin-top:2px; }
+
+  /* ============ Radar screen ============ */
+  .radar-wrap{ position:relative; margin:-18px -22px 0; height:calc(100% + 18px); }
+  .radar-map{ width:100%; height:100%; display:block; }
+  .radar-topbar{ position:absolute; top:16px; left:20px; right:20px; z-index:5; }
+  .radar-pill{ display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; background:rgba(6,11,18,0.72); backdrop-filter:blur(10px); padding:9px 14px; border-radius:20px; border:1px solid var(--line-strong); }
+  .radar-legend{ position:absolute; bottom:16px; left:20px; right:20px; display:flex; gap:8px; flex-wrap:wrap; z-index:5; }
+  .legend-chip{ display:flex; align-items:center; gap:6px; font-size:9.5px; font-weight:700; color:var(--ink-dim); background:rgba(6,11,18,0.72); backdrop-filter:blur(10px); padding:6px 10px; border-radius:20px; border:1px solid var(--line); }
+  .vessel-marker{ cursor:pointer; }
+
+  /* ============ Generic bottom sheet ============ */
+  .sheet-backdrop{ position:absolute; inset:0; background:rgba(3,6,10,0.6); backdrop-filter:blur(2px); z-index:60; opacity:0; pointer-events:none; transition:opacity .25s ease; }
+  .sheet-backdrop.show{ opacity:1; pointer-events:auto; }
+  .bottom-sheet{
+    position:absolute; left:0; right:0; bottom:0; z-index:61; background:var(--surface-2);
+    border-top:1px solid var(--line-strong); border-radius:26px 26px 0 0; padding:12px 22px 30px;
+    transform:translateY(102%); transition:transform .35s cubic-bezier(.16,.9,.28,1); max-height:78%; overflow-y:auto;
+  }
+  .bottom-sheet.show{ transform:translateY(0); }
+  .sheet-handle{ width:36px; height:4px; border-radius:3px; background:var(--line-strong); margin:0 auto 18px; }
+
+  .detail-row{ display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px solid var(--line); }
+  .detail-row:first-of-type{ border-top:none; }
+  .detail-icon{ width:36px; height:36px; border-radius:10px; background:var(--surface-3); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .detail-text{ flex:1; }
+  .detail-label{ font-size:11px; color:var(--ink-dim); font-weight:600; }
+  .detail-val{ font-size:16px; font-weight:800; margin-top:2px; }
+  .detail-status{ font-size:10.5px; font-weight:700; color:var(--safe); }
+
+  .sheet-title-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .sheet-title{ font-size:18px; font-weight:800; }
+  .sheet-badge{ font-size:10.5px; font-weight:700; padding:5px 12px; border-radius:20px; }
+  .sheet-sub{ font-size:12.5px; color:var(--ink-dim); margin-bottom:16px; }
+
+  .sheet-cta-row{ display:flex; gap:10px; margin-top:18px; }
+  .sheet-btn{ flex:1; padding:14px; border-radius:14px; font-weight:700; font-size:13px; text-align:center; }
+  .sheet-btn.primary{ background:var(--accent); color:#04181d; }
+  .sheet-btn.ghost{ background:var(--surface-3); color:var(--ink); }
+
+  /* ============ Floating Ask ORCA ============ */
+  .ask-orca-fab{
+    position:absolute; left:50%; bottom:100px; transform:translateX(-50%); z-index:999;
+    display:flex; align-items:center; gap:11px; padding:15px 26px 15px 18px; border-radius:34px;
+    background:linear-gradient(120deg, #0f2530, #0a1a22); border:1px solid var(--accent-line);
+    box-shadow:0 16px 44px -14px rgba(116,229,214,0.55), 0 0 0 1px rgba(0,0,0,0.2);
+  }
+  .ask-orca-fab .orb-mini{ width:32px; height:32px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #d7fbf5, var(--accent) 60%, var(--accent-2) 100%); position:relative; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .ask-orca-fab .orb-mini svg{ width:14px; height:14px; }
+  .ask-orca-fab .orb-mini::after{ content:''; position:absolute; inset:-6px; border-radius:50%; border:1px solid var(--accent-line); animation:breathe 2.6s ease-in-out infinite; }
+  @keyframes breathe{ 0%,100%{ transform:scale(1); opacity:0.6;} 50%{ transform:scale(1.3); opacity:0;} }
+  .ask-orca-fab .fab-text{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.2; }
+  .ask-orca-fab .fab-title{ font-size:13.5px; font-weight:800; }
+  .ask-orca-fab .fab-sub{ font-size:9.5px; color:var(--ink-dim); font-weight:600; }
+
+  /* ============ Bottom nav ============ */
+  .bottom-nav{
+    position:absolute; bottom:0; left:0; right:0; height:82px; z-index:50;
+    background:rgba(5,9,14,0.86); backdrop-filter:blur(16px); border-top:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-around; padding-bottom:16px;
+  }
+  .nav-item{ display:flex; flex-direction:column; align-items:center; gap:5px; padding:6px 20px; }
+  .nav-item svg{ width:20px; height:20px; color:var(--ink-faint); transition:color .2s ease; }
+  .nav-item span{ font-size:10px; font-weight:700; color:var(--ink-faint); transition:color .2s ease; }
+  .nav-item.active svg, .nav-item.active span{ color:var(--accent); }
+
+  /* ============ Voice sheet (full overlay) ============ */
+  .voice-overlay{ position:absolute; inset:0; z-index:70; background:linear-gradient(190deg, #081722 0%, #050a10 60%); display:none; flex-direction:column; }
+  .voice-overlay.show{ display:flex; }
+  .voice-close{ align-self:flex-end; margin:20px 20px 0; width:34px; height:34px; border-radius:50%; background:var(--surface-2); display:flex; align-items:center; justify-content:center; }
+  .voice-body{ flex:1; overflow-y:auto; display:flex; flex-direction:column; align-items:center; text-align:center; padding:10px 26px 40px; }
+  .voice-orb-wrap{ position:relative; width:180px; height:180px; display:flex; align-items:center; justify-content:center; margin:16px 0 26px; flex-shrink:0; }
+  .voice-orb-ring{ position:absolute; inset:0; border-radius:50%; border:1px solid var(--accent-line); animation:breathe-ring 2.8s ease-in-out infinite; }
+  .voice-orb-ring.r2{ inset:22px; animation-delay:.5s; }
+  @keyframes breathe-ring{ 0%,100%{ transform:scale(0.94); opacity:0.5; } 50%{ transform:scale(1.06); opacity:0.15; } }
+  .voice-orb{
+    width:112px; height:112px; border-radius:50%; z-index:2;
+    background:radial-gradient(circle at 32% 28%, #d7fbf5, var(--accent) 55%, var(--accent-2) 100%);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 44px rgba(116,229,214,0.4);
+    transition:transform .3s ease;
+  }
+  .voice-orb.listening{ animation:orb-scale 1.3s ease-in-out infinite; }
+  @keyframes orb-scale{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.09);} }
+  .waveform{ position:absolute; bottom:-2px; left:50%; transform:translateX(-50%); display:flex; gap:3px; align-items:flex-end; height:20px; z-index:3; }
+  .waveform span{ width:3px; border-radius:2px; background:#04181d; animation:wv 1s ease-in-out infinite; }
+  .waveform span:nth-child(1){ height:7px; animation-delay:0s; }
+  .waveform span:nth-child(2){ height:14px; animation-delay:.1s; }
+  .waveform span:nth-child(3){ height:19px; animation-delay:.2s; }
+  .waveform span:nth-child(4){ height:12px; animation-delay:.3s; }
+  .waveform span:nth-child(5){ height:8px; animation-delay:.4s; }
+  @keyframes wv{ 0%,100%{ transform:scaleY(0.5);} 50%{ transform:scaleY(1);} }
+
+  .voice-label{ font-size:17px; font-weight:800; margin-bottom:8px; min-height:24px; }
+  .voice-sub{ font-size:13px; color:var(--ink-dim); line-height:1.6; max-width:250px; min-height:20px; }
+  .voice-indicators{ display:flex; gap:8px; margin-top:20px; flex-wrap:wrap; justify-content:center; }
+  .voice-indicator{ display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:var(--ink-faint); background:var(--surface-1); border:1px solid var(--line); padding:7px 12px; border-radius:20px; opacity:0; transform:translateY(6px); transition:all .3s ease; }
+  .voice-indicator.show{ opacity:1; transform:translateY(0); }
+  .voice-indicator.done{ color:var(--ink); border-color:var(--line-strong); }
+  .voice-indicator .tick{ color:var(--ink-faint); }
+  .voice-indicator.done .tick{ color:var(--safe); }
+
+  .voice-answer{ width:100%; max-width:300px; background:var(--surface-1); border:1px solid var(--line-strong); border-radius:22px; padding:20px; margin-top:8px; text-align:left; opacity:0; transform:translateY(10px); transition:all .4s ease; }
+  .voice-answer.show{ opacity:1; transform:translateY(0); }
+  .voice-answer-label{ font-size:10px; color:var(--accent); font-weight:700; letter-spacing:0.5px; margin-bottom:8px; }
+  .voice-answer-text{ font-size:14.5px; font-weight:700; line-height:1.55; margin-bottom:16px; }
+  .voice-answer-actions{ display:flex; gap:9px; margin-bottom:14px; }
+  .voice-action-btn{ flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:12px; font-weight:700; font-size:12px; }
+  .voice-action-btn.primary{ background:var(--accent); color:#04181d; }
+  .voice-action-btn.ghost{ background:var(--surface-3); color:var(--ink); }
+  .follow-ups{ display:flex; flex-direction:column; gap:8px; }
+  .follow-up-chip{ text-align:left; font-size:12.5px; font-weight:600; color:var(--ink-dim); background:var(--surface-3); padding:11px 14px; border-radius:12px; border:1px solid var(--line); }
+
+  .mic-cta{ margin-top:20px; display:flex; align-items:center; gap:9px; padding:15px 28px; border-radius:30px; background:var(--accent); color:#04181d; font-weight:800; font-size:13.5px; box-shadow:0 12px 30px -12px rgba(116,229,214,0.55); }
+  .mic-cta:disabled{ opacity:0.55; }
+  .ask-again{ margin-top:14px; font-size:12px; color:var(--ink-dim); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
+  .voice-fallback-note{ font-size:11.5px; color:var(--ink-faint); font-weight:600; margin-top:10px; max-width:250px; }
+  .sample-queries{ display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px; margin-top:16px; }
+  .sample-query-btn{ text-align:left; font-size:12.5px; font-weight:600; color:var(--ink); background:var(--surface-1); border:1px solid var(--line); padding:12px 14px; border-radius:13px; }
+  .speaking-pill{ display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; color:var(--accent); background:var(--accent-soft); padding:5px 11px; border-radius:20px; margin-bottom:10px; }
+  .speaking-bars{ display:flex; gap:2px; align-items:center; }
+  .speaking-bars span{ width:2px; height:8px; background:var(--accent); border-radius:1px; animation:sbar 0.9s ease-in-out infinite; }
+  .speaking-bars span:nth-child(2){ animation-delay:.15s; } .speaking-bars span:nth-child(3){ animation-delay:.3s; }
+  @keyframes sbar{ 0%,100%{ transform:scaleY(0.4);} 50%{ transform:scaleY(1);} }
+
+  /* ============ Emergency ============ */
+  .emergency-overlay{ position:absolute; inset:0; z-index:95; background:linear-gradient(185deg, #1c0a0a 0%, #050608 55%); display:none; flex-direction:column; }
+  .emergency-overlay.show{ display:flex; }
+  .emergency-body{ flex:1; overflow-y:auto; padding:64px 26px 40px; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .emergency-icon{ width:64px; height:64px; border-radius:20px; background:var(--danger-soft); border:1px solid var(--danger-line); display:flex; align-items:center; justify-content:center; margin-bottom:22px; animation:blink 1.2s infinite; }
+  .emergency-badge{ font-size:11px; font-weight:800; color:var(--danger); background:var(--danger-soft); padding:6px 14px; border-radius:20px; margin-bottom:16px; letter-spacing:0.4px; }
+  .emergency-headline{ font-size:25px; font-weight:800; line-height:1.25; margin-bottom:22px; max-width:280px; }
+  .emergency-stats{ display:flex; width:100%; gap:12px; margin-bottom:22px; }
+  .emergency-stat{ flex:1; background:rgba(255,255,255,0.02); border:1px solid var(--danger-line); border-radius:18px; padding:16px 10px; }
+  .emergency-stat-val{ font-size:26px; font-weight:800; color:var(--danger); }
+  .emergency-stat-label{ font-size:10px; color:var(--ink-dim); font-weight:700; margin-top:5px; letter-spacing:0.3px; }
+  .emergency-desc{ font-size:13px; color:var(--ink-dim); line-height:1.65; margin-bottom:18px; max-width:280px; }
+  .emergency-lang{ font-size:13px; font-weight:600; background:var(--surface-1); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:20px; width:100%; line-height:1.6; }
+  .emergency-actions{ width:100%; margin-top:auto; display:flex; flex-direction:column; gap:10px; }
+  .return-btn{ width:100%; padding:17px; border-radius:16px; background:linear-gradient(155deg, #ff8c80, #c8493c); color:#fff; font-weight:800; font-size:14.5px; box-shadow:0 14px 34px -12px rgba(243,137,125,0.6); }
+  .play-warning-btn{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px; background:rgba(255,255,255,0.03); border:1px solid var(--danger-line); border-radius:14px; color:var(--danger); font-weight:700; font-size:12.5px; }
+
+  .sync-toast{ position:absolute; top:70px; left:50%; transform:translateX(-50%) translateY(-8px); z-index:75; background:var(--surface-2); border:1px solid var(--line-strong); padding:9px 16px; border-radius:20px; font-size:11.5px; font-weight:700; display:flex; align-items:center; gap:8px; opacity:0; transition:all .3s ease; pointer-events:none; }
+  .sync-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .spin{ width:12px; height:12px; border:2px solid var(--line-strong); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+
+  /* ============ Demo panel ============ */
+  .demo-panel{ width:230px; margin-left:24px; display:flex; flex-direction:column; gap:10px; }
+  .demo-title{ font-size:11.5px; font-weight:700; color:#6b8290; letter-spacing:0.5px; margin-bottom:2px; }
+  .demo-btn{ text-align:left; padding:12px 14px; border-radius:13px; background:#0a121b; border:1px solid var(--line); font-size:12px; font-weight:600; color:#8ba0ad; transition:all .15s ease; }
+  .demo-btn:hover{ border-color:var(--accent); color:var(--ink); }
+  .demo-btn.danger:hover{ border-color:var(--danger); color:var(--danger); }
+  .layout-wrap{ display:flex; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+  @media (max-width:760px){ .demo-panel{ margin-left:0; margin-top:20px; width:390px; max-width:100%; flex-direction:row; flex-wrap:wrap; } .demo-btn{ flex:1 1 45%; } }
+</style>
+</head>
+<body>
+
+<div class="layout-wrap">
+<div class="device">
+  <div class="notch"></div>
+
+  <!-- Header -->
+  <div class="app-header">
+    <div class="brand-row">
+      <svg class="orca-mark" viewBox="0 0 24 24" fill="none">
+        <path d="M2 15c3.5-7 7.2-9.5 10-9.5s6.5 2.5 10 9.5c-3.3-2.2-6.6-3.3-10-3.3S5.3 12.8 2 15z" fill="var(--accent)"/>
+        <circle cx="15.5" cy="8" r="1" fill="#04181d"/>
+      </svg>
+      <div class="brand-text">
+        <div class="brand-name">ORCA</div>
+        <div class="brand-sub">Marine Intelligence</div>
+      </div>
+    </div>
+    <div class="status-row">
+      <div class="status-item"><span class="dot gps"></span>GPS</div>
+      <div class="status-item" id="netStatus"><span class="dot on"></span>Online</div>
+    </div>
+  </div>
+
+  <div class="offline-banner" id="offlineBanner">
+    <div class="offline-banner-text">
+      <div class="offline-banner-title">Offline mode</div>
+      <div class="offline-banner-sub">Using your latest saved marine data.</div>
+    </div>
+  </div>
+
+  <!-- Screens -->
+  <div class="screens">
+
+    <!-- ===== HOME ===== -->
+    <div class="screen active" id="screen-home">
+
+      <div class="hero">
+        <div class="hero-greeting">Good morning</div>
+        <div class="hero-status safe">You're safe to sail</div>
+        <div class="hero-sub">Sea conditions are calm across your usual fishing grounds.</div>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="hero-stat-label">WAVE</div><div class="hero-stat-val">0.8 m</div></div>
+          <div class="hero-stat"><div class="hero-stat-label">IMBL</div><div class="hero-stat-val">18.4 km</div></div>
+          <div class="hero-stat"><div class="hero-stat-label">WIND</div><div class="hero-stat-val">12 kn</div></div>
+        </div>
+      </div>
+
+      <div class="section-label">TODAY'S RECOMMENDATION</div>
+      <div class="pfz-block" id="pfzBlock">
+        <div class="pfz-block-top">
+          <div class="pfz-tag">PFZ found</div>
+          <div class="pfz-eta">22 min away</div>
+        </div>
+        <div class="pfz-center">
+          <div class="pfz-ring-wrap">
+            <svg viewBox="0 0 140 140">
+              <defs>
+                <linearGradient id="pfzGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#a9f6ea"/>
+                  <stop offset="100%" stop-color="#5bb8e0"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-track" cx="70" cy="70" r="63"/>
+              <circle class="ring-fill" id="ringFill" cx="70" cy="70" r="63"/>
+            </svg>
+            <div class="pfz-ring-label">
+              <div class="pfz-score-num num" id="scoreNum">0</div>
+              <div class="pfz-score-den">PFZ SCORE</div>
+            </div>
+          </div>
+          <div class="pfz-zone-name">Southwest Shelf</div>
+          <div class="pfz-zone-meta">8.4 km · High potential</div>
+        </div>
+        <div class="pfz-tap-hint">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+          Tap to view zone details
+        </div>
+      </div>
+
+      <div class="weather-strip" id="weatherStrip">
+        <div class="weather-item"><div class="weather-val">0.8 m</div><div class="weather-label">WAVE</div></div>
+        <div class="weather-item"><div class="weather-val">12 kn</div><div class="weather-label">WIND</div></div>
+        <div class="weather-item"><div class="weather-val">NE</div><div class="weather-label">DIRECTION</div></div>
+        <div class="weather-tag">Good</div>
+      </div>
+
+      <div class="imbl-row" id="imblRow">
+        <div class="imbl-icon" id="imblIcon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--safe)" id="imblIconStroke" stroke-width="2.2"><path d="M12 2v20M4 6h16M4 6l2-3M20 6l-2-3"/></svg>
+        </div>
+        <div class="imbl-text">
+          <div class="imbl-label">IMBL DISTANCE</div>
+          <div class="imbl-val" id="imblVal">18.4 km</div>
+        </div>
+        <div class="imbl-note" id="imblNote">Well within safe margin</div>
+      </div>
+
+    </div>
+
+    <!-- ===== RADAR ===== -->
+    <div class="screen" id="screen-radar" style="padding:0;">
+      <div class="radar-wrap">
+        <div class="radar-topbar"><div class="radar-pill">5 vessels tracked</div></div>
+        <div id="map" style="width: 100%; height: 100%; border-radius: 20px;"></div>
+        <div class="radar-legend">
+          <div class="legend-chip"><span class="dot" style="background:#74e5d6;"></span>My vessel</div>
+          <div class="legend-chip"><span class="dot" style="background:#86e2ab;"></span>Normal</div>
+          <div class="legend-chip"><span class="dot" style="background:#eec27a;"></span>Warning</div>
+          <div class="legend-chip"><span class="dot" style="background:#f3897d;"></span>Critical</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ADVISORIES ===== -->
+    <div class="screen" id="screen-advisories">
+      <div class="section-label">LANGUAGE</div>
+      <div class="lang-picker" id="langPicker">
+        <button class="lang-chip active" data-lang="en">English</button>
+        <button class="lang-chip" data-lang="ta">தமிழ்</button>
+        <button class="lang-chip" data-lang="ml">Malayalam</button>
+        <button class="lang-chip" data-lang="gu">ગુજરાતી</button>
+        <button class="lang-chip" data-lang="hi">हिन्दी</button>
+      </div>
+
+      <div class="section-label">TODAY'S ADVISORY</div>
+      <div class="advisory-card">
+        <div class="advisory-headline" data-i18n="advTitle">Safe to fish today</div>
+        <div class="advisory-body" data-i18n="advBody">Sea conditions are currently favorable. A high-potential fishing zone has been identified 8.4 km southwest of your position.</div>
+        <button class="listen-btn" id="listenAdvisoryBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5 6 9H2v6h4l5 4V5zM16 8a5 5 0 0 1 0 8"/></svg>
+          Listen
+        </button>
+      </div>
+
+      <div class="section-label">RECENT ALERTS</div>
+      <div class="advisory-card" style="padding:6px 22px;">
+        <div class="alert-item">
+          <div class="alert-dot" style="background:var(--safe);"></div>
+          <div><div class="alert-title">New PFZ identified — Southwest Shelf</div><div class="alert-time">2 hours ago</div></div>
+        </div>
+        <div class="alert-item">
+          <div class="alert-dot" style="background:var(--warn);"></div>
+          <div><div class="alert-title">Moderate swells expected this evening</div><div class="alert-time">5 hours ago</div></div>
+        </div>
+        <div class="alert-item">
+          <div class="alert-dot" style="background:var(--accent);"></div>
+          <div><div class="alert-title">Vessel telemetry synced</div><div class="alert-time">Today, 6:02 AM</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Generic bottom sheet -->
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <div class="bottom-sheet" id="genericSheet"><div class="sheet-handle"></div><div id="sheetContent"></div></div>
+
+  <!-- Floating Ask ORCA -->
+  <button class="ask-orca-fab" id="askOrcaFab">
+    <span class="orb-mini"><svg viewBox="0 0 24 24" fill="none" stroke="#04181d" stroke-width="2.6"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></span>
+    <span class="fab-text"><span class="fab-title">Ask ORCA</span><span class="fab-sub">Tap to speak</span></span>
+  </button>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" data-screen="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-item" data-screen="radar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="12" cy="12" r="9"/><path d="M12 12l5-3M12 12V6"/></svg>
+      <span>Radar</span>
+    </button>
+    <button class="nav-item" data-screen="advisories">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M4 4h13l3 4-3 4H4z"/><path d="M4 4v16"/></svg>
+      <span>Advisories</span>
+    </button>
+  </div>
+
+  <!-- Sync toast -->
+  <div class="sync-toast" id="syncToast"><div class="spin"></div><span id="syncToastLabel">Syncing marine data…</span></div>
+
+  <!-- Voice overlay -->
+  <div class="voice-overlay" id="voiceOverlay">
+    <button class="voice-close" id="voiceClose">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-dim)" stroke-width="2.3"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="voice-body">
+      <div class="voice-orb-wrap">
+        <div class="voice-orb-ring"></div>
+        <div class="voice-orb-ring r2"></div>
+        <div class="voice-orb" id="voiceOrb">
+          <svg id="orbIcon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#04181d" stroke-width="2.3"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+          <div class="waveform" id="waveform" style="display:none;"><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+      </div>
+      <div class="voice-label" id="voiceLabel">How can I help you?</div>
+      <div class="voice-sub" id="voiceSub">Ask about fishing, weather, safe routes or your location.</div>
+
+      <div class="voice-indicators" id="voiceIndicators"></div>
+      <div class="voice-answer" id="voiceAnswer">
+        <div class="voice-answer-label" id="voiceAnswerLabel">ORCA SAYS</div>
+        <div class="voice-answer-text" id="voiceAnswerText">Your nearest suitable fishing zone is 8.4 km southwest. Sea conditions are calm along the way.</div>
+        <div class="voice-answer-actions">
+          <button class="voice-action-btn primary" id="playAnswerBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5 6 9H2v6h4l5 4V5zM16 8a5 5 0 0 1 0 8"/></svg>
+            <span id="playAnswerLabel">Play answer</span>
+          </button>
+          <button class="voice-action-btn ghost">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 20l-5-5 5-5M4 15h11a5 5 0 0 0 0-10H9"/></svg>
+            Show route
+          </button>
+        </div>
+        <div class="follow-ups" id="followUps">
+          <button class="follow-up-chip" data-q="where">Where is it?</button>
+          <button class="follow-up-chip" data-q="why">Why this zone?</button>
+          <button class="follow-up-chip" data-q="safe">Is it safe?</button>
+          <button class="follow-up-chip" data-q="how-long">How long will it stay active?</button>
+        </div>
+      </div>
+
+      <div class="sample-queries" id="sampleQueries" style="display:none;">
+        <button class="sample-query-btn" data-sample="safe">"Is it safe to fish today?"</button>
+        <button class="sample-query-btn" data-sample="nearest">"Where is the nearest PFZ?"</button>
+        <button class="sample-query-btn" data-sample="imbl">"How far am I from the border?"</button>
+        <button class="sample-query-btn" data-sample="weather">"What's the sea condition?"</button>
+      </div>
+
+      <button class="mic-cta" id="micCta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#04181d" stroke-width="2.3"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+        <span id="micCtaLabel">Tap to speak</span>
+      </button>
+      <div class="voice-fallback-note" id="voiceFallbackNote" style="display:none;">Voice recognition isn't available on this device. Choose a sample question instead.</div>
+      <button class="ask-again" id="askAgainBtn" style="display:none;">Ask another question</button>
+    </div>
+  </div>
+
+  <!-- Emergency overlay -->
+  <div class="emergency-overlay" id="emergencyOverlay">
+    <div class="emergency-body">
+      <div class="emergency-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      </div>
+      <div class="emergency-badge">DO NOT PROCEED</div>
+      <div class="emergency-headline">Dangerous sea conditions detected</div>
+      <div class="emergency-stats">
+        <div class="emergency-stat"><div class="emergency-stat-val">2.4m</div><div class="emergency-stat-label">WAVE HEIGHT</div></div>
+        <div class="emergency-stat"><div class="emergency-stat-val">28kt</div><div class="emergency-stat-label">WIND</div></div>
+      </div>
+      <div class="emergency-desc">Conditions have exceeded the safe operating threshold for your vessel. The fishing recommendation has been suppressed.</div>
+      <div class="emergency-lang" id="emergencyLangNote">"High waves detected. Please return to a safe area."</div>
+      <div class="emergency-actions">
+        <button class="return-btn" id="returnSafetyBtn">Return to safety</button>
+        <button class="play-warning-btn" id="playWarningBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5 6 9H2v6h4l5 4V5zM16 8a5 5 0 0 1 0 8"/></svg>
+          Play warning
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Demo controls -->
+<div class="demo-panel">
+  <div class="demo-title">DEMO CONTROLS</div>
+  <button class="demo-btn" id="demoImblWarn">Move vessel toward IMBL</button>
+  <button class="demo-btn" id="demoImblReset">Reset IMBL to safe</button>
+  <button class="demo-btn" id="demoOffline">Toggle offline / online</button>
+  <button class="demo-btn danger" id="demoStorm">⚠ Trigger storm emergency</button>
+</div>
+</div>
+
+<script>
+(function(){
+  const i18n = {
+    en:{ advTitle:"Safe to fish today", advBody:"Sea conditions are currently favorable. A high-potential fishing zone has been identified 8.4 km southwest of your position.", emergencyNote:"\u201cHigh waves detected. Please return to a safe area.\u201d" },
+    ta:{ advTitle:"இன்று மீன்பிடிக்க பாதுகாப்பானது", advBody:"கடல் நிலைமைகள் தற்போது சாதகமாக உள்ளன. உங்கள் இருப்பிடத்திலிருந்து 8.4 கிமீ தென்மேற்கில் ஒரு உயர் வாய்ப்புள்ள மண்டலம் கண்டறியப்பட்டுள்ளது.", emergencyNote:"\u201cஅதிக அலைகள் கண்டறியப்பட்டன. பாதுகாப்பான பகுதிக்குத் திரும்பவும்.\u201d" },
+    ml:{ advTitle:"ഇന്ന് മീൻപിടിക്കാൻ സുരക്ഷിതം", advBody:"സമുദ്ര സാഹചര്യങ്ങൾ നിലവിൽ അനുകൂലമാണ്. നിങ്ങളുടെ സ്ഥാനത്ത് നിന്ന് 8.4 കിമീ തെക്കുപടിഞ്ഞാറായി ഉയർന്ന സാധ്യതയുള്ള മേഖല കണ്ടെത്തി.", emergencyNote:"\u201cഉയർന്ന തിരമാലകൾ കണ്ടെത്തി. സുരക്ഷിത സ്ഥലത്തേക്ക് മടങ്ങുക.\u201d" },
+    gu:{ advTitle:"આજે માછીમારી માટે સુરક્ષિત", advBody:"સમુદ્રની સ્થિતિ હાલમાં અનુકૂળ છે. તમારા સ્થાનથી 8.4 કિમી દક્ષિણ-પશ્ચિમમાં ઉચ્ચ સંભાવના ઝોન મળી આવ્યો છે.", emergencyNote:"\u201cઊંચા મોજા મળી આવ્યા. કૃપા કરી સુરક્ષિત વિસ્તારમાં પાછા ફરો.\u201d" },
+    hi:{ advTitle:"आज मछली पकड़ने के लिए सुरक्षित", advBody:"समुद्री स्थितियाँ फ़िलहाल अनुकूल हैं। आपकी स्थिति से 8.4 किमी दक्षिण-पश्चिम में एक उच्च संभावित क्षेत्र मिला है।", emergencyNote:"\u201cऊंची लहरें पाई गईं। कृपया सुरक्षित क्षेत्र में लौटें।\u201d" }
+  };
+  function applyLang(code){
+    const d = i18n[code] || i18n.en;
+    document.querySelectorAll('[data-i18n]').forEach(el=>{ const k = el.getAttribute('data-i18n'); if(d[k]) el.textContent = d[k]; });
+    document.getElementById('emergencyLangNote').textContent = d.emergencyNote;
+  }
+  document.querySelectorAll('.lang-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      document.querySelectorAll('.lang-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active'); applyLang(chip.dataset.lang);
+    });
+  });
+
+  // ---- PFZ score animation ----
+  function animateScore(){
+    const circumference = 396;
+    const target = 98;
+    const fill = document.getElementById('ringFill');
+    requestAnimationFrame(()=>{ fill.style.strokeDashoffset = circumference - (target/100)*circumference; });
+    let cur = 0; const numEl = document.getElementById('scoreNum');
+    const step = setInterval(()=>{ cur += 3; if(cur>=target){ cur=target; clearInterval(step);} numEl.textContent = cur; }, 30);
+  }
+  window.addEventListener('load', animateScore);
+
+  // ---- Nav ----
+  const screens = { home: document.getElementById('screen-home'), radar: document.getElementById('screen-radar'), advisories: document.getElementById('screen-advisories') };
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+      item.classList.add('active');
+      Object.values(screens).forEach(s=>s.classList.remove('active'));
+      screens[item.dataset.screen].classList.add('active');
+    });
+  });
+
+  // ---- Generic bottom sheet ----
+  const sheetBackdrop = document.getElementById('sheetBackdrop');
+  const genericSheet = document.getElementById('genericSheet');
+  const sheetContent = document.getElementById('sheetContent');
+  function openSheet(html){ sheetContent.innerHTML = html; genericSheet.classList.add('show'); sheetBackdrop.classList.add('show'); }
+  function closeSheet(){ genericSheet.classList.remove('show'); sheetBackdrop.classList.remove('show'); }
+  sheetBackdrop.addEventListener('click', closeSheet);
+
+  const pfzDetailHTML = `
+    <div class="sheet-title-row"><div class="sheet-title">Southwest Shelf</div><div class="sheet-badge" style="background:var(--accent-soft); color:var(--accent);">98 · High potential</div></div>
+    <div class="sheet-sub">8.4 km away · 22 min estimated travel</div>
+    <div class="detail-row"><div class="detail-icon">🌡</div><div class="detail-text"><div class="detail-label">Sea surface temperature</div><div class="detail-val">24.2°C</div></div><div class="detail-status">Favorable</div></div>
+    <div class="detail-row"><div class="detail-icon">🌿</div><div class="detail-text"><div class="detail-label">Chlorophyll concentration</div><div class="detail-val">0.45 mg/m³</div></div><div class="detail-status">High</div></div>
+    <div class="detail-row"><div class="detail-icon">🌊</div><div class="detail-text"><div class="detail-label">Ocean front strength</div><div class="detail-val">0.65°C / 1.5 km</div></div><div class="detail-status">Strong</div></div>
+    <div class="detail-row"><div class="detail-icon">💨</div><div class="detail-text"><div class="detail-label">Wind drift</div><div class="detail-val">SW · 1.2 km/h</div></div><div class="detail-status">Calm</div></div>
+    <div class="section-label" style="margin-top:18px;">WHY THIS ZONE?</div>
+    <div class="advisory-body" style="margin-bottom:0;">Favorable water temperature and high chlorophyll levels indicate strong fish activity. The detected ocean front may concentrate feeding activity in this area.</div>
+    <div class="sheet-cta-row">
+      <button class="sheet-btn ghost" id="sheetListenBtn">🔊 Listen</button>
+      <button class="sheet-btn primary" id="sheetNavigateBtn">Navigate</button>
+    </div>`;
+  document.getElementById('pfzBlock').addEventListener('click', ()=> openSheet(pfzDetailHTML));
+
+  const weatherDetailHTML = `
+    <div class="sheet-title-row"><div class="sheet-title">Sea conditions</div><div class="sheet-badge" style="background:var(--safe-soft); color:var(--safe);">Good</div></div>
+    <div class="sheet-sub">Updated 4 minutes ago</div>
+    <div class="detail-row"><div class="detail-icon">🌊</div><div class="detail-text"><div class="detail-label">Wave height</div><div class="detail-val">0.8 m</div></div><div class="detail-status">Calm</div></div>
+    <div class="detail-row"><div class="detail-icon">💨</div><div class="detail-text"><div class="detail-label">Wind speed</div><div class="detail-val">12 kn</div></div><div class="detail-status">Light</div></div>
+    <div class="detail-row"><div class="detail-icon">↗</div><div class="detail-text"><div class="detail-label">Direction</div><div class="detail-val">Northeast</div></div><div class="detail-status">Stable</div></div>
+    <div class="sheet-cta-row"><button class="sheet-btn primary" style="width:100%;" id="sheetCloseBtn2">Done</button></div>`;
+  document.getElementById('weatherStrip').addEventListener('click', ()=> openSheet(weatherDetailHTML));
+
+  const vesselData = {
+    my:{ title:'My Vessel', badge:'SAFE', color:'safe', speed:'8.4 kts', heading:'NE', imbl:'18.4 km', sea:'Calm' },
+    v1:{ title:'Meenavan-1', badge:'SAFE', color:'safe', speed:'7.2 kts', heading:'N', imbl:'12.1 km', sea:'Calm' },
+    v2:{ title:'Kadalthai', badge:'WARNING', color:'warn', speed:'4.1 kts', heading:'E', imbl:'6.8 km', sea:'Moderate' },
+    v3:{ title:'Samudra Deepam', badge:'CRITICAL', color:'danger', speed:'8.5 kts', heading:'NE', imbl:'1.8 km', sea:'Rough' },
+    v4:{ title:'Matsya Jyothi', badge:'SAFE', color:'safe', speed:'9.0 kts', heading:'SW', imbl:'20.4 km', sea:'Calm' }
+  };
+  function vesselSheetHTML(v){
+    return `
+    <div class="sheet-title-row"><div class="sheet-title">${v.title}</div><div class="sheet-badge" style="background:var(--${v.color}-soft); color:var(--${v.color});">${v.badge}</div></div>
+    <div class="sheet-sub">Live telemetry</div>
+    <div class="detail-row"><div class="detail-icon">⛴</div><div class="detail-text"><div class="detail-label">Speed</div><div class="detail-val">${v.speed}</div></div></div>
+    <div class="detail-row"><div class="detail-icon">🧭</div><div class="detail-text"><div class="detail-label">Heading</div><div class="detail-val">${v.heading}</div></div></div>
+    <div class="detail-row"><div class="detail-icon">📍</div><div class="detail-text"><div class="detail-label">IMBL distance</div><div class="detail-val">${v.imbl}</div></div></div>
+    <div class="detail-row"><div class="detail-icon">🌊</div><div class="detail-text"><div class="detail-label">Sea state</div><div class="detail-val">${v.sea}</div></div></div>
+    <div class="sheet-cta-row"><button class="sheet-btn primary" style="width:100%;">View route</button></div>`;
+  }
+  // Vessel marker event listeners - only attach if elements exist
+  const vesselMarkers = document.querySelectorAll('.vessel-marker');
+  if (vesselMarkers.length > 0) {
+    vesselMarkers.forEach(m=>{
+      m.addEventListener('click', ()=> openSheet(vesselSheetHTML(vesselData[m.dataset.vessel])));
+    });
+  }
+  // PFZ marker event listener - only attach if element exists
+  const pfzMarker = document.querySelector('[data-marker="pfz"]');
+  if (pfzMarker) {
+    pfzMarker.addEventListener('click', (e)=>{ e.stopPropagation(); openSheet(pfzDetailHTML); });
+  }
+
+  sheetContent.addEventListener('click', (e)=>{
+    if(e.target.id === 'sheetCloseBtn2' || e.target.id === 'sheetNavigateBtn') closeSheet();
+    if(e.target.id === 'sheetListenBtn'){ e.target.style.opacity=0.6; setTimeout(()=>{ e.target.style.opacity=1; }, 600); }
+  });
+
+  // ---- Voice overlay: real speech recognition + synthesis with graceful fallback ----
+  const voiceOverlay = document.getElementById('voiceOverlay');
+  function openVoice(){ voiceOverlay.classList.add('show'); }
+  document.getElementById('askOrcaFab').addEventListener('click', openVoice);
+  document.getElementById('voiceClose').addEventListener('click', ()=>{ voiceOverlay.classList.remove('show'); stopListening(); });
+
+  const orb = document.getElementById('voiceOrb');
+  const orbIcon = document.getElementById('orbIcon');
+  const waveform = document.getElementById('waveform');
+  const voiceLabel = document.getElementById('voiceLabel');
+  const voiceSub = document.getElementById('voiceSub');
+  const voiceIndicators = document.getElementById('voiceIndicators');
+  const voiceAnswer = document.getElementById('voiceAnswer');
+  const voiceAnswerText = document.getElementById('voiceAnswerText');
+  const micCta = document.getElementById('micCta');
+  const micCtaLabel = document.getElementById('micCtaLabel');
+  const askAgainBtn = document.getElementById('askAgainBtn');
+  const sampleQueries = document.getElementById('sampleQueries');
+  const voiceFallbackNote = document.getElementById('voiceFallbackNote');
+  const playAnswerBtn = document.getElementById('playAnswerBtn');
+  const playAnswerLabel = document.getElementById('playAnswerLabel');
+
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const speechSupported = !!SpeechRecognitionAPI;
+  let recognizer = null;
+  if (speechSupported){
+    recognizer = new SpeechRecognitionAPI();
+    recognizer.lang = 'en-IN'; recognizer.interimResults = false; recognizer.maxAlternatives = 1;
+  } else {
+    sampleQueries.style.display = 'flex';
+    voiceFallbackNote.style.display = 'block';
+    micCtaLabel.textContent = 'Voice unavailable — try a sample';
+    micCta.disabled = true;
+  }
+
+  const responses = {
+    safe: { q:"Is it safe to fish today?", a:"Yes. Current wave height is 0.8m and wind speed is 12 knots. Conditions are favorable." },
+    nearest: { q:"Where is the nearest PFZ?", a:"Your nearest suitable fishing zone is 8.4 km southwest of your position." },
+    imbl: { q:"How far am I from the border?", a:"You're 18.4 km from the IMBL — well within the safe margin." },
+    weather: { q:"What's the sea condition?", a:"Sea conditions are calm. Wave height 0.8m, wind 12 knots from the northeast." },
+    default: { q:"Where is the nearest safe fishing zone?", a:"Your nearest suitable fishing zone is 8.4 km southwest. Sea conditions are calm along the way." }
+  };
+
+  function resetVoice(){
+    orb.classList.remove('listening'); orbIcon.style.display='block'; waveform.style.display='none';
+    voiceLabel.textContent='How can I help you?'; voiceSub.textContent='Ask about fishing, weather, safe routes or your location.';
+    voiceIndicators.innerHTML=''; voiceAnswer.classList.remove('show');
+    micCta.style.display='flex'; askAgainBtn.style.display='none';
+    if(!speechSupported){ sampleQueries.style.display='flex'; }
+  }
+
+  async function showAnswer(entry){
+    voiceLabel.textContent = '“' + entry.q + '”';
+    const items = ['GPS','Weather','PFZ','IMBL'];
+    voiceIndicators.innerHTML = items.map(t=>`<div class="voice-indicator"><span class="tick">○</span>${t}</div>`).join('');
+    setTimeout(()=>{ voiceLabel.textContent='ORCA is checking the ocean…'; }, 500);
+    const nodes = voiceIndicators.querySelectorAll('.voice-indicator');
+    nodes.forEach((n,i)=>{
+      setTimeout(()=>{ n.classList.add('show'); }, 500 + i*110);
+      setTimeout(()=>{ n.classList.add('done'); n.querySelector('.tick').textContent='✓'; }, 900 + i*210);
+    });
+    setTimeout(async ()=>{
+      voiceLabel.textContent='ORCA answered';
+      try {
+        // Include location context in the query
+        const locationContext = `Context: User is at Lat ${window.currentLat}, Lon ${window.currentLon}. `;
+        const enhancedQuery = locationContext + `Query: ${entry.q}`;
+        const response = await fetch('http://127.0.0.1:8000/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: enhancedQuery })
+        });
+        const data = await response.json();
+        voiceAnswerText.textContent = data.response;
+      } catch (error) {
+        console.error('Error:', error);
+        voiceAnswerText.textContent = entry.a; // fallback to mock response
+      }
+      voiceAnswer.classList.add('show'); askAgainBtn.style.display='block';
+      speak(voiceAnswerText.textContent);
+    }, 2400);
+  }
+
+  function stopListening(){ if(recognizer){ try{ recognizer.stop(); }catch(e){} } window.speechSynthesis && window.speechSynthesis.cancel(); }
+
+  function runVoiceFlow(){
+    if(!speechSupported) return;
+    micCta.style.display='none'; sampleQueries.style.display='none';
+    orb.classList.add('listening'); orbIcon.style.display='none'; waveform.style.display='flex';
+    voiceLabel.textContent='Listening…'; voiceSub.textContent='Speak naturally';
+    let heard = false;
+    recognizer.onresult = (e)=>{
+      heard = true;
+      const text = e.results[0][0].transcript;
+      orb.classList.remove('listening'); waveform.style.display='none'; orbIcon.style.display='block';
+      showAnswer({ q:text, a:responses.default.a });
+    };
+    recognizer.onerror = ()=>{
+      orb.classList.remove('listening'); waveform.style.display='none'; orbIcon.style.display='block';
+      voiceLabel.textContent="Didn't catch that"; voiceSub.textContent='Try again, or pick a sample question.';
+      sampleQueries.style.display='flex'; micCta.style.display='flex';
+    };
+    recognizer.onend = ()=>{
+      if(!heard){
+        orb.classList.remove('listening'); waveform.style.display='none'; orbIcon.style.display='block';
+        if(voiceLabel.textContent === 'Listening…'){
+          voiceLabel.textContent='ORCA is checking the ocean…'; voiceSub.textContent='';
+          showAnswer(responses.default);
+        }
+      }
+    };
+    try{ recognizer.start(); }catch(err){ showAnswer(responses.default); }
+  }
+  micCta.addEventListener('click', runVoiceFlow);
+  askAgainBtn.addEventListener('click', resetVoice);
+
+  function speak(text){
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 0.98;
+    playAnswerLabel.textContent = 'Speaking…';
+    utter.onend = ()=>{ playAnswerLabel.textContent = 'Play answer'; };
+    window.speechSynthesis.speak(utter);
+  }
+  playAnswerBtn.addEventListener('click', ()=> speak(voiceAnswerText.textContent));
+
+  sampleQueries.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.sample-query-btn'); if(!btn) return;
+    sampleQueries.style.display='none'; micCta.style.display='none';
+    voiceLabel.textContent = '“' + responses[btn.dataset.sample].q + '”';
+    setTimeout(()=> showAnswer(responses[btn.dataset.sample]), 400);
+  });
+
+  const followUpAnswers = {
+    where: "It's 8.4 km southwest of your current position — about 22 minutes at cruising speed.",
+    why: 'Warm water and high chlorophyll levels have created a strong ocean front, which tends to concentrate fish activity.',
+    safe: 'Yes — current wave height is 0.8m and wind is 12 knots. Conditions are within safe limits.',
+    'how-long': 'Based on current drift patterns, this zone is expected to remain active for the next 6 to 8 hours.'
+  };
+  document.getElementById('followUps').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.follow-up-chip'); if(!btn) return;
+    const text = followUpAnswers[btn.dataset.q];
+    voiceAnswerText.textContent = text;
+    voiceAnswer.style.transform='translateY(4px)'; voiceAnswer.style.opacity='0.6';
+    setTimeout(()=>{ voiceAnswer.style.transform='translateY(0)'; voiceAnswer.style.opacity='1'; }, 180);
+    speak(text);
+  });
+
+  // ---- IMBL demo ----
+  const imblIcon = document.getElementById('imblIcon');
+  const imblStroke = document.getElementById('imblIconStroke');
+  const imblVal = document.getElementById('imblVal');
+  const imblNote = document.getElementById('imblNote');
+  function setImbl(state){
+    if(state==='safe'){ imblVal.textContent='18.4 km'; imblVal.style.color='var(--ink)'; imblNote.textContent='Well within safe margin'; imblIcon.style.background='var(--safe-soft)'; imblStroke.setAttribute('stroke','var(--safe)'); }
+    else if(state==='warning'){ imblVal.textContent='4.2 km'; imblVal.style.color='var(--warn)'; imblNote.textContent='Approaching boundary'; imblIcon.style.background='var(--warn-soft)'; imblStroke.setAttribute('stroke','var(--warn)'); }
+    else { imblVal.textContent='1.8 km'; imblVal.style.color='var(--danger)'; imblNote.textContent='Change course now'; imblIcon.style.background='var(--danger-soft)'; imblStroke.setAttribute('stroke','var(--danger)'); }
+  }
+  document.getElementById('demoImblWarn').addEventListener('click', ()=>{ setImbl('warning'); setTimeout(()=>setImbl('critical'), 1000); });
+  document.getElementById('demoImblReset').addEventListener('click', ()=> setImbl('safe'));
+
+  // ---- Offline ----
+  const netStatus = document.getElementById('netStatus');
+  const offlineBanner = document.getElementById('offlineBanner');
+  const syncToast = document.getElementById('syncToast');
+  const syncLabel = document.getElementById('syncToastLabel');
+  let online = true;
+  document.getElementById('demoOffline').addEventListener('click', ()=>{
+    online = !online;
+    if(!online){ netStatus.innerHTML='<span class="dot off"></span>Offline'; offlineBanner.classList.add('show'); }
+    else {
+      offlineBanner.classList.remove('show');
+      syncLabel.textContent='Syncing marine data…'; syncToast.classList.add('show');
+      setTimeout(()=>{ syncLabel.textContent='✓ Updated'; }, 1100);
+      setTimeout(()=>{ syncToast.classList.remove('show'); }, 2300);
+      netStatus.innerHTML='<span class="dot on"></span>Online';
+    }
+  });
+
+  // ---- Emergency ----
+  const emergencyOverlay = document.getElementById('emergencyOverlay');
+  document.getElementById('demoStorm').addEventListener('click', ()=>{
+    stopListening();
+    emergencyOverlay.classList.add('show');
+    if(window.speechSynthesis){
+      window.speechSynthesis.cancel();
+      const w = new SpeechSynthesisUtterance('Danger. Dangerous sea conditions detected. Do not proceed. Return to safety.');
+      window.speechSynthesis.speak(w);
+    }
+  });
+  document.getElementById('returnSafetyBtn').addEventListener('click', ()=> emergencyOverlay.classList.remove('show'));
+  document.getElementById('playWarningBtn').addEventListener('click', function(){ this.style.opacity=0.6; setTimeout(()=>{ this.style.opacity=1; }, 600); });
+})();
+</script>
+
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBzxI-qaDfURBBUP1KzncuM7OgILvqRf14"></script>
+<script>
+  // Global variables for map and location
+  let map;
+  const defaultLat = 13.0827;
+  const defaultLon = 80.2707;
+  window.currentLat = defaultLat;
+  window.currentLon = defaultLon;
+
+  // Function to initialize the map with dark style
+  function initMap() {
+    // Create the map with no initial center (we'll set it later)
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: { lat: window.currentLat, lng: window.currentLon },
+      zoom: 8,
+      styles: [
+        { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+        {
+          featureType: 'administrative.locality',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#d59563' }]
+        },
+        {
+          featureType: 'poi',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#d59563' }]
+        },
+        {
+          featureType: 'poi.park',
+          elementType: 'geometry',
+          stylers: [{ color: '#263c3f' }]
+        },
+        {
+          featureType: 'poi.park',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#6b9a76' }]
+        },
+        {
+          featureType: 'road',
+          elementType: 'geometry',
+          stylers: [{ color: '#38414e' }]
+        },
+        {
+          featureType: 'road',
+          elementType: 'geometry.stroke',
+          stylers: [{ color: '#212a37' }]
+        },
+        {
+          featureType: 'road',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#9ca5b3' }]
+        },
+        {
+          featureType: 'road.highway',
+          elementType: 'geometry',
+          stylers: [{ color: '#746855' }]
+        },
+        {
+          featureType: 'road.highway',
+          elementType: 'geometry.stroke',
+          stylers: [{ color: '#1f2835' }]
+        },
+        {
+          featureType: 'road.highway',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#f3d19c' }]
+        },
+        {
+          featureType: 'transit',
+          elementType: 'geometry',
+          stylers: [{ color: '#2f3948' }]
+        },
+        {
+          featureType: 'transit.station',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#d59563' }]
+        },
+        {
+          featureType: 'water',
+          elementType: 'geometry',
+          stylers: [{ color: '#17263c' }]
+        },
+        {
+          featureType: 'water',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#515c6d' }]
+        },
+        {
+          featureType: 'water',
+          elementType: 'labels.text.stroke',
+          stylers: [{ color: '#17263c' }]
+        }
+      ]
+    });
+
+    // Add a marker for the user's vessel
+    const marker = new google.maps.Marker({
+      map: map,
+      title: 'My Vessel'
+    });
+
+    // Update marker position when the center changes (we'll update it when we get the location)
+    // We'll update the marker position in the geolocation callback
+    window.mapMarker = marker;
+  }
+
+  // Initialize the map when the Google Maps API is loaded
+  window.initMap = initMap;
+
+  // Try to get the user's geolocation
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        window.currentLat = position.coords.latitude;
+        window.currentLon = position.coords.longitude;
+        // If the map is already initialized, update it
+        if (map) {
+          map.setCenter({ lat: window.currentLat, lng: window.currentLon });
+          // Update the marker position
+          if (window.mapMarker) {
+            window.mapMarker.setPosition({ lat: window.currentLat, lng: window.currentLon });
+          }
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        // Use default coordinates (Bay of Bengal)
+        window.currentLat = defaultLat;
+        window.currentLon = defaultLon;
+        // If the map is already initialized, update it to default
+        if (map) {
+          map.setCenter({ lat: window.currentLat, lng: window.currentLon });
+          if (window.mapMarker) {
+            window.mapMarker.setPosition({ lat: window.currentLat, lng: window.currentLon });
+          }
+        }
+      }
+    );
+  } else {
+    console.warn('Geolocation is not supported by this browser.');
+    // Use default coordinates (Bay of Bengal)
+    window.currentLat = defaultLat;
+    window.currentLon = defaultLon;
+  }
+</script>
+</body>
+</html>

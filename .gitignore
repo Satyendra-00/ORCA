@@ -1,2 +1,6 @@
 .env
 __pycache__/
+.venv/
+*.log
+*.pid
+response_audio.mp3
